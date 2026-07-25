@@ -9,12 +9,25 @@
 // charge'ı temsil eder; imza fail-closed doğrulanır (imzasız istek 401).
 
 import { createServer } from "node:http";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { estimateFromSeries, commission, usdcOutFor } from "./commission.js";
 import { fetchUsdTrySeries } from "./oracle.js";
 import { verifyWebhook } from "./iyzico.js";
 import * as chain from "./chain.js";
 
 const PORT = process.env.PORT || 3000;
+const WEB = join(dirname(fileURLToPath(import.meta.url)), "../../web");
+function serveHtml(res, file) {
+  try {
+    const b = readFileSync(join(WEB, file));
+    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    res.end(b);
+  } catch {
+    res.writeHead(404); res.end("not found");
+  }
+}
 
 function P() {
   return {
@@ -58,6 +71,25 @@ const server = createServer(async (req, res) => {
     const url = new URL(req.url, "http://x");
 
     if (req.method === "GET" && url.pathname === "/health") return json(res, 200, { ok: true });
+
+    // --- demo sayfaları (localhost) ---
+    if (req.method === "GET" && (url.pathname === "/store" || url.pathname === "/")) return serveHtml(res, "demo-store.html");
+    if (req.method === "GET" && url.pathname === "/checkout") return serveHtml(res, "demo-checkout.html");
+
+    // --- demo ödeme (iyzico charge'ı temsil eder → doğrudan settle; imzalı yol /pos/webhook'ta kanıtlı) ---
+    if (req.method === "POST" && url.pathname === "/demo/pay") {
+      const b = JSON.parse(await readBody(req) || "{}");
+      const grossTL = Number(b.grossTL), valorDays = Number(b.valorDays || process.env.DEFAULT_VALOR_DAYS || 7);
+      if (!b.merchantId || !(grossTL > 0) || !(valorDays >= 1 && valorDays <= 365)) return json(res, 400, { error: "gecersiz istek" });
+      const { active } = await chain.resolveMerchant(b.merchantId);
+      if (!active) return json(res, 400, { error: "merchant kayitli/aktif degil" });
+      const { mu, sigma, spot } = await rates();
+      const c = commission(valorDays, { mu, sigma, ...P() });
+      const usdcOut = usdcOutFor(grossTL, spot, c.totalBps);
+      const posRefStr = "demo-" + (b.orderId || "x") + "-" + Math.floor(Date.now() / 1000);
+      const r = await chain.settle({ posRefStr, slug: b.merchantId, grossTLkurus: grossTL, commissionBps: c.totalBps, valorDays, usdcOut6: usdcOut.toString() });
+      return json(res, 200, { ok: true, commissionBps: c.totalBps, usdcOut: Number(usdcOut) / 1e6, ...r });
+    }
 
     // --- komisyon önizleme ---
     if (req.method === "GET" && url.pathname === "/quote") {

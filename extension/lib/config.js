@@ -1,6 +1,6 @@
 // Troia eklenti config
 export const BACKEND_URL = "http://localhost:3000";
-export const CHECKOUT_URL = "http://localhost:5173/checkout"; // hosted checkout (demo)
+export const CHECKOUT_URL = "http://localhost:3000/checkout"; // hosted checkout (demo)
 export const EXPLORER = "https://testnet.arcscan.app";
 
 // Model A: sayfa yalnız merchantId taşır; ödeme adresi on-chain registry'den çözülür.
