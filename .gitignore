@@ -1,0 +1,11 @@
+# Foundry
+out/
+cache/
+broadcast/
+
+# Node
+node_modules/
+
+# Secrets (asla commit)
+.env
+backend/.env

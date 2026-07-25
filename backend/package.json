@@ -1,0 +1,13 @@
+{
+  "name": "troia-backend",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Troia settlement backend — commission engine, iyzico PSP adapter, merchant onboarding, on-chain settle trigger.",
+  "scripts": {
+    "test": "node --test",
+    "server": "node src/server.js"
+  },
+  "dependencies": {
+    "ethers": "^6.17.0"
+  }
+}
