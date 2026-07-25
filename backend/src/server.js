@@ -9,12 +9,19 @@
 // charge'ı temsil eder; imza fail-closed doğrulanır (imzasız istek 401).
 
 import { createServer } from "node:http";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+
+// .env'i kendimiz yükle (node src/server.js ile de çalışsın)
+try {
+  const envPath = join(dirname(fileURLToPath(import.meta.url)), "../.env");
+  if (existsSync(envPath) && typeof process.loadEnvFile === "function") process.loadEnvFile(envPath);
+} catch { /* yoksa sorun değil — ortam değişkenleri dışarıdan gelebilir */ }
+
 import { estimateFromSeries, commission, usdcOutFor } from "./commission.js";
 import { fetchUsdTrySeries } from "./oracle.js";
-import { verifyWebhook } from "./iyzico.js";
+import { verifyWebhook, initializeCheckoutForm, retrieveCheckoutForm, createPayment } from "./iyzico.js";
 import * as chain from "./chain.js";
 
 const PORT = process.env.PORT || 3000;
@@ -55,55 +62,181 @@ function json(res, code, obj) {
 }
 function readBody(req, limit = 10_240) {
   return new Promise((resolve, reject) => {
-    let d = "", n = 0;
+    const chunks = []; let n = 0;
     req.on("data", (c) => {
       n += c.length;
       if (n > limit) { reject(new Error("body too large")); req.destroy(); return; }
-      d += c;
+      chunks.push(c); // Buffer topla — string '+=' çok-baytlı UTF-8'i chunk sınırında bozar
     });
-    req.on("end", () => resolve(d));
+    req.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
     req.on("error", reject);
   });
+}
+
+// Ödeme tutarını hesaplar → { chargeTLkurus (alıcının Troy kartından çekilecek ₺), usdcOut6 (satıcıya USDC, 6-dec) }
+// grossUSD (USD cent): uluslararası mağaza USD fiyatlar → SATICI TAM fiyatı USDC alır; komisyon ALICININ ₺ tutarına eklenir.
+// grossTL (kuruş): geriye dönük ₺-fiyatlı → alıcı sabit ₺ öder, satıcı komisyon düşülmüş USDC alır.
+function computeSettlement(src, spot, totalBps) {
+  const usdCents = Number(src.grossUSD);
+  if (usdCents > 0) {
+    const chargeTLkurus = Math.round(usdCents * spot * (1 + totalBps / 10_000)); // par ₺ + komisyon
+    const usdcOut6 = BigInt(Math.round(usdCents * 1e4)); // cent → 6-dec USDC (satıcı tam fiyatı alır)
+    return { chargeTLkurus, usdcOut6 };
+  }
+  const grossTL = Number(src.grossTL);
+  return { chargeTLkurus: grossTL, usdcOut6: usdcOutFor(grossTL, spot, totalBps) };
+}
+
+// --- iyzico sandbox durum + geçici oturum belleği (demo için in-memory) ---
+// iyzico ancak GERÇEK sandbox anahtarları varsa açık (ikisi de "sandbox-" ile başlamalı) →
+// placeholder/webhook-secret ile açılıp demo'yu kırmaz.
+const iyzicoOn = () => (process.env.IYZICO_API_KEY || "").startsWith("sandbox-") && (process.env.IYZICO_SECRET_KEY || "").startsWith("sandbox-");
+const pendingPay = new Map(); // token -> { merchantId, orderId, grossTL, valorDays }
+const payResult = new Map();  // token -> { ok, ... } | { error }
+function demoBuyer(req) {
+  const ip = String(req.headers["x-forwarded-for"] || (req.socket && req.socket.remoteAddress) || "85.34.78.112").split(",")[0].trim().replace(/^::ffff:/, "") || "85.34.78.112";
+  return {
+    id: "BY-demo", name: "Demo", surname: "Kullanici", gsmNumber: "+905350000000",
+    email: "demo@troia.dev", identityNumber: "11111111111",
+    registrationAddress: "Demo Mah. Troia Sok. No:1", ip, city: "Istanbul", country: "Turkey", zipCode: "34000",
+  };
+}
+function payPage(title, sub) {
+  return `<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
+<title>Troia</title><style>body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;
+background:#0C1B30;color:#F4EFE4;font-family:-apple-system,Arial,sans-serif;text-align:center}
+.c{max-width:360px;padding:24px}h1{font-family:Georgia,serif;font-weight:500;font-size:1.5rem;margin:0 0 10px}
+p{color:#9FB1CB;font-size:.9rem;line-height:1.5}</style><div class=c><h1>${title}</h1><p>${sub || "Bu sekmeyi kapatabilirsiniz."}</p></div>`;
 }
 
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url, "http://x");
 
-    if (req.method === "GET" && url.pathname === "/health") return json(res, 200, { ok: true });
+    if (req.method === "GET" && url.pathname === "/health") return json(res, 200, { ok: true, iyzico: iyzicoOn() });
 
     // --- demo sayfaları (localhost) ---
     if (req.method === "GET" && (url.pathname === "/store" || url.pathname === "/")) return serveHtml(res, "demo-store.html");
     if (req.method === "GET" && url.pathname === "/checkout") return serveHtml(res, "demo-checkout.html");
 
     // --- demo ödeme (iyzico charge'ı temsil eder → doğrudan settle; imzalı yol /pos/webhook'ta kanıtlı) ---
+    // GÜVENLİK: kimlik doğrulaması yok → yalnız açıkça açılmış demo derlemelerinde. Üretimde asla.
     if (req.method === "POST" && url.pathname === "/demo/pay") {
+      if (process.env.TROIA_ENABLE_DEMO !== "1") return json(res, 404, { error: "not found" });
       const b = JSON.parse(await readBody(req) || "{}");
-      const grossTL = Number(b.grossTL), valorDays = Number(b.valorDays || process.env.DEFAULT_VALOR_DAYS || 7);
-      if (!b.merchantId || !(grossTL > 0) || !(valorDays >= 1 && valorDays <= 365)) return json(res, 400, { error: "gecersiz istek" });
+      const valorDays = Number(b.valorDays || process.env.DEFAULT_VALOR_DAYS || 7);
+      if (!b.merchantId || !b.orderId || !(valorDays >= 1 && valorDays <= 365)) return json(res, 400, { error: "gecersiz istek" });
       const { active } = await chain.resolveMerchant(b.merchantId);
       if (!active) return json(res, 400, { error: "merchant kayitli/aktif degil" });
       const { mu, sigma, spot } = await rates();
       const c = commission(valorDays, { mu, sigma, ...P() });
-      const usdcOut = usdcOutFor(grossTL, spot, c.totalBps);
-      const posRefStr = "demo-" + (b.orderId || "x") + "-" + Math.floor(Date.now() / 1000);
-      const r = await chain.settle({ posRefStr, slug: b.merchantId, grossTLkurus: grossTL, commissionBps: c.totalBps, valorDays, usdcOut6: usdcOut.toString() });
-      return json(res, 200, { ok: true, commissionBps: c.totalBps, usdcOut: Number(usdcOut) / 1e6, ...r });
+      const { chargeTLkurus, usdcOut6 } = computeSettlement(b, spot, c.totalBps);
+      if (!(chargeTLkurus > 0) || chargeTLkurus > 1e11) return json(res, 400, { error: "gecersiz tutar" });
+      // posRef sipariş-başına STABİL → aynı sipariş iki kez settle edilemez (on-chain isSettled guard).
+      const posRefStr = "demo-" + b.orderId;
+      const r = await chain.settle({ posRefStr, slug: b.merchantId, grossTLkurus: chargeTLkurus, commissionBps: c.totalBps, valorDays, usdcOut6: usdcOut6.toString() });
+      return json(res, 200, { ok: true, commissionBps: c.totalBps, chargeTLkurus, usdcOut: Number(usdcOut6) / 1e6, ...r });
     }
 
-    // --- komisyon önizleme ---
+    // --- komisyon önizleme --- (grossTL=kuruş VEYA grossUSD=USD cent kabul eder)
     if (req.method === "GET" && url.pathname === "/quote") {
-      const grossTL = Number(url.searchParams.get("grossTL"));      // kuruş
       const valorDays = Number(url.searchParams.get("valorDays") || process.env.DEFAULT_VALOR_DAYS || 7);
-      if (!(grossTL > 0) || !(valorDays >= 1 && valorDays <= 365)) return json(res, 400, { error: "gecersiz parametre" });
+      if (!(valorDays >= 1 && valorDays <= 365)) return json(res, 400, { error: "gecersiz parametre" });
       const { mu, sigma, spot } = await rates();
       const c = commission(valorDays, { mu, sigma, ...P() });
-      const usdcOut = usdcOutFor(grossTL, spot, c.totalBps);
-      return json(res, 200, { grossTLkurus: grossTL, valorDays, usdTryRate: spot, commission: c, usdcOut6: usdcOut.toString(), usdcOut: Number(usdcOut) / 1e6 });
+      const { chargeTLkurus, usdcOut6 } = computeSettlement({ grossTL: url.searchParams.get("grossTL"), grossUSD: url.searchParams.get("grossUSD") }, spot, c.totalBps);
+      if (!(chargeTLkurus > 0) || chargeTLkurus > 1e11) return json(res, 400, { error: "gecersiz tutar" });
+      return json(res, 200, { grossTLkurus: chargeTLkurus, chargeTLkurus, valorDays, usdTryRate: spot, commission: c, usdcOut6: usdcOut6.toString(), usdcOut: Number(usdcOut6) / 1e6 });
     }
 
-    // --- onboarding ---
+    // --- iyzico sandbox: DİREKT kart ödemesi (kart eklentide girilir → sandbox panelinde görünür → settle) ---
+    if (req.method === "POST" && url.pathname === "/pay/card") {
+      if (!iyzicoOn()) return json(res, 404, { error: "iyzico yapilandirilmadi" });
+      const b = JSON.parse(await readBody(req) || "{}");
+      const c = b.card || {};
+      const valorDays = Number(b.valorDays || process.env.DEFAULT_VALOR_DAYS || 7);
+      if (!b.merchantId || !b.orderId || !c.cardNumber || !c.expireMonth || !c.expireYear || !c.cvc || !(valorDays >= 1 && valorDays <= 365))
+        return json(res, 400, { error: "gecersiz istek" });
+      const { active } = await chain.resolveMerchant(b.merchantId);
+      if (!active) return json(res, 400, { error: "merchant kayitli/aktif degil" });
+      const { mu, sigma, spot } = await rates();
+      const comm = commission(valorDays, { mu, sigma, ...P() });
+      const { chargeTLkurus, usdcOut6 } = computeSettlement(b, spot, comm.totalBps);
+      if (!(chargeTLkurus > 0) || chargeTLkurus > 1e11) return json(res, 400, { error: "gecersiz tutar" });
+      const priceTL = (chargeTLkurus / 100).toFixed(2);
+      const pay = await createPayment({ conversationId: b.orderId, priceTL, card: c, buyer: demoBuyer(req), item: b.itemName });
+      if (pay.kind !== "ok" || !pay.data || pay.data.status !== "success") {
+        return json(res, 402, { error: (pay.data && pay.data.errorMessage) || "iyzico odeme reddedildi" });
+      }
+      // iyzico'da başarılı ödeme (sandbox panelinde görünür) → merchant'a on-chain USDC settle
+      try {
+        const r = await chain.settle({ posRefStr: "iyz-" + b.orderId, slug: b.merchantId, grossTLkurus: chargeTLkurus, commissionBps: comm.totalBps, valorDays, usdcOut6: usdcOut6.toString() });
+        return json(res, 200, { ok: true, paymentId: pay.data.paymentId, chargeTLkurus, usdcOut: Number(usdcOut6) / 1e6, ...r });
+      } catch (e) {
+        console.error("[troia] iyz-card settle:", e.message);
+        return json(res, 200, { ok: true, paymentId: pay.data.paymentId, chargeTLkurus, usdcOut: Number(usdcOut6) / 1e6, settleError: true });
+      }
+    }
+
+    // --- iyzico sandbox: checkout form başlat (gerçek kart formu iyzico'da) ---
+    if (req.method === "POST" && url.pathname === "/pay/init") {
+      if (!iyzicoOn()) return json(res, 400, { error: "iyzico yapilandirilmadi" });
+      const b = JSON.parse(await readBody(req) || "{}");
+      const valorDays = Number(b.valorDays || process.env.DEFAULT_VALOR_DAYS || 7);
+      if (!b.merchantId || !b.orderId || !(valorDays >= 1 && valorDays <= 365)) return json(res, 400, { error: "gecersiz istek" });
+      const { active } = await chain.resolveMerchant(b.merchantId);
+      if (!active) return json(res, 400, { error: "merchant kayitli/aktif degil" });
+      const { mu, sigma, spot } = await rates();
+      const c = commission(valorDays, { mu, sigma, ...P() });
+      const { chargeTLkurus } = computeSettlement(b, spot, c.totalBps);
+      if (!(chargeTLkurus > 0) || chargeTLkurus > 1e11) return json(res, 400, { error: "gecersiz tutar" });
+      const priceTL = (chargeTLkurus / 100).toFixed(2);
+      const base = process.env.PUBLIC_BASE_URL || ("http://localhost:" + PORT);
+      const r = await initializeCheckoutForm({ conversationId: b.orderId, priceTL, buyer: demoBuyer(req), callbackUrl: base + "/pay/callback" });
+      if (r.kind !== "ok" || !r.data || r.data.status !== "success" || !r.data.token) {
+        return json(res, 502, { error: "iyzico init basarisiz", detail: (r.data && r.data.errorMessage) || r.reason });
+      }
+      pendingPay.set(r.data.token, { merchantId: b.merchantId, orderId: b.orderId, grossUSD: b.grossUSD, grossTL: b.grossTL, valorDays });
+      return json(res, 200, { token: r.data.token, paymentPageUrl: r.data.paymentPageUrl });
+    }
+
+    // --- iyzico callback: kullanıcı iyzico'da ödedi → sonucu server-side doğrula → settle ---
+    if (req.method === "POST" && url.pathname === "/pay/callback") {
+      const raw = await readBody(req);
+      let token = new URLSearchParams(raw).get("token");
+      if (!token) { try { token = JSON.parse(raw).token; } catch { /* yok */ } }
+      const pend = token && pendingPay.get(token);
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      if (!token || !pend) return res.end(payPage("Geçersiz ödeme oturumu"));
+      const r = await retrieveCheckoutForm({ conversationId: pend.orderId, token });
+      const ok = r.kind === "ok" && r.data && r.data.status === "success" && r.data.paymentStatus === "SUCCESS";
+      if (!ok) { payResult.set(token, { error: (r.data && r.data.errorMessage) || "odeme onaylanmadi" }); return res.end(payPage("Ödeme onaylanmadı")); }
+      const { mu, sigma, spot } = await rates();
+      const c = commission(pend.valorDays, { mu, sigma, ...P() });
+      const { chargeTLkurus, usdcOut6 } = computeSettlement(pend, spot, c.totalBps);
+      try {
+        const s = await chain.settle({ posRefStr: "iyz-" + pend.orderId, slug: pend.merchantId, grossTLkurus: chargeTLkurus, commissionBps: c.totalBps, valorDays: pend.valorDays, usdcOut6: usdcOut6.toString() });
+        payResult.set(token, { ok: true, commissionBps: c.totalBps, usdcOut: Number(usdcOut6) / 1e6, ...s });
+        return res.end(payPage("Ödeme başarılı ✓", "Satıcıya USDC gönderildi. Bu sekmeyi kapatabilirsiniz."));
+      } catch (e) {
+        console.error("[troia] iyz settle:", e.message);
+        payResult.set(token, { error: "settle hatasi" });
+        return res.end(payPage("Ödeme alındı", "Zincir kaydı bekleniyor. Bu sekmeyi kapatabilirsiniz."));
+      }
+    }
+
+    // --- iyzico ödeme durumu (overlay bunu poll eder) ---
+    if (req.method === "GET" && url.pathname === "/pay/status") {
+      const token = url.searchParams.get("token");
+      const r = token && payResult.get(token);
+      if (!r) return json(res, 200, { status: "pending" });
+      return json(res, 200, r.ok ? { status: "success", ...r } : { status: "failed", ...r });
+    }
+
+    // --- onboarding --- (operatör-yalnız: payout adresi belirlemek ayrıcalıklı işlemdir)
     if (req.method === "POST" && url.pathname === "/onboard") {
+      const admin = process.env.OPERATOR_ADMIN_TOKEN;
+      if (!admin || req.headers["x-admin-token"] !== admin) return json(res, 401, { error: "yetkisiz" });
       const body = JSON.parse(await readBody(req) || "{}");
       if (!body.slug || !/^0x[0-9a-fA-F]{40}$/.test(body.payout || "")) return json(res, 400, { error: "slug + gecerli payout gerekli" });
       const r = await chain.registerMerchant(body.slug, body.payout);

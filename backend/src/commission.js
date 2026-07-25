@@ -22,7 +22,8 @@ export function estimateFromSeries(closes) {
   }
   const n = rets.length;
   const mu = rets.reduce((s, r) => s + r, 0) / n; // ortalama günlük drift
-  const variance = rets.reduce((s, r) => s + (r - mu) ** 2, 0) / (n - 1); // örneklem varyansı
+  // n<2 (tam 2 fiyat) → örneklem varyansı 0/0=NaN olur; tek getiriden volatilite kestirilemez → 0.
+  const variance = n > 1 ? rets.reduce((s, r) => s + (r - mu) ** 2, 0) / (n - 1) : 0;
   const sigma = Math.sqrt(variance);
   return { mu, sigma, samples: n };
 }
@@ -39,13 +40,17 @@ export function commission(valorDays, p) {
   const driftBps = Math.max(0, mu) * n * 10_000; // negatif drift'i 0'a kırp (TL güçlenirse ceza yok)
   const volBps = z * sigma * Math.sqrt(n) * 10_000;
   const fundingBps = (usdFundingAprBps / 365) * n;
-  const totalBps = driftBps + volBps + fundingBps + marginBps;
+  const rawTotal = driftBps + volBps + fundingBps + marginBps;
+  // Patolojik σ/μ rejiminde totalBps 100%'ü aşıp negatif payout üretmesin: sert tavan (varsayılan %90).
+  const capBps = Number(p.maxCommissionBps) > 0 ? Number(p.maxCommissionBps) : 9000;
+  const totalBps = Math.min(rawTotal, capBps);
   return {
     driftBps: round2(driftBps),
     volBps: round2(volBps),
     fundingBps: round2(fundingBps),
     marginBps: round2(marginBps),
     totalBps: round2(totalBps),
+    capped: rawTotal > capBps,
   };
 }
 
@@ -59,7 +64,7 @@ export function commission(valorDays, p) {
 export function usdcOutFor(grossTLkurus, usdTryRate, totalBps) {
   const tl = Number(grossTLkurus) / 100; // kuruş → TL
   const usdGross = tl / usdTryRate; // brüt USD
-  const usdNet = usdGross * (1 - totalBps / 10_000); // komisyon düş
+  const usdNet = Math.max(0, usdGross * (1 - totalBps / 10_000)); // komisyon düş, negatife düşme
   return BigInt(Math.floor(usdNet * 1e6)); // USDC 6 decimals
 }
 

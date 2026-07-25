@@ -80,6 +80,41 @@ export async function retrieveCheckoutForm({ conversationId, token }, opts) {
   return post("/payment/iyzipos/checkoutform/auth/ecom/detail", { locale: "tr", conversationId, token }, opts);
 }
 
+function addressOf(b) {
+  return { contactName: (b.name || "Demo") + " " + (b.surname || "Kullanici"), city: b.city || "Istanbul", country: b.country || "Turkey", address: b.registrationAddress || "Demo Mah. No:1", zipCode: b.zipCode || "34000" };
+}
+
+/** Direkt (non-3DS) kart ödemesi — kart bilgisi burada iyzico'ya gider; sandbox panelinde işlem olarak görünür. */
+export async function createPayment({ conversationId, priceTL, card, buyer, item }, opts) {
+  const price = formatPrice(priceTL);
+  const body = {
+    locale: "tr",
+    conversationId,
+    price,
+    paidPrice: price,
+    currency: "TRY",
+    installment: 1,
+    basketId: conversationId,
+    paymentChannel: "WEB",
+    paymentGroup: "PRODUCT",
+    paymentCard: {
+      cardHolderName: card.cardHolderName || "Demo Kullanici",
+      cardNumber: String(card.cardNumber || "").replace(/\s+/g, ""),
+      expireMonth: String(card.expireMonth || ""),
+      expireYear: String(card.expireYear || ""),
+      cvc: String(card.cvc || ""),
+      registerCard: 0,
+    },
+    buyer,
+    shippingAddress: addressOf(buyer),
+    billingAddress: addressOf(buyer),
+    basketItems: [
+      { id: "BI-" + conversationId, name: (item || "Order").slice(0, 60), category1: "Games", itemType: "VIRTUAL", price },
+    ],
+  };
+  return post("/payment/auth", body, opts);
+}
+
 /** Webhook imzasını fail-closed, timing-safe doğrular. */
 export function verifyWebhook(rawBody, signatureHeader, secretKey = process.env.IYZICO_SECRET_KEY) {
   if (!secretKey || !signatureHeader || !rawBody) return false;

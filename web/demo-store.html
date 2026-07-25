@@ -1,104 +1,367 @@
-<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>Meridian Supply — Ödeme</title>
-<!-- Troia Model A intent: sayfa yalnız merchantId taşır (ham adres YOK). Eklenti bunu algılar. -->
-<script type="application/troia+json">
-{"merchantId":"merchant.demo-store","orderId":"MS-4821","grossTL":25000,"valorDays":7}
-</script>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NOVAKEY | Digital Game Store</title>
+<script type="application/troia+json" id="troiaIntent"></script>
 <style>
-  :root{--paper:#FBF8F1;--ink:#1B1A17;--inkmut:#6B665C;--line:rgba(27,26,23,.14);--line2:rgba(27,26,23,.26);--navy:#0C1B30;--ivory:#F4EFE4;--brass:#B08A50;
-    --serif:"Hoefler Text","Palatino Linotype",Palatino,Georgia,serif;--sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif}
-  *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans)}
-  .nav{display:flex;justify-content:space-between;align-items:center;padding:18px 26px;border-bottom:1px solid var(--line)}.nav .wm{font-family:var(--serif);font-size:1.2rem;letter-spacing:.22em}
-  .wrap{max-width:900px;margin:0 auto;padding:40px 26px;display:grid;grid-template-columns:1fr 1fr;gap:40px}@media(max-width:760px){.wrap{grid-template-columns:1fr}}
-  h2{font-family:var(--serif);font-weight:500;font-size:1.05rem;letter-spacing:.04em;text-transform:uppercase;margin:0 0 18px}
-  .item{display:flex;gap:16px;padding-bottom:18px;border-bottom:1px solid var(--line)}.item .ph{width:74px;height:92px;background:linear-gradient(160deg,#E4DCC9,#D3C8AE);flex:none}.item .nm{font-family:var(--serif);font-size:1.05rem}.item .meta{font-size:.8rem;color:var(--inkmut);margin-top:4px}.item .pr{margin-left:auto;font-family:var(--serif)}
-  .sum{margin-top:18px}.sum .r{display:flex;justify-content:space-between;padding:8px 0;color:var(--inkmut);font-size:.92rem}.sum .tot{border-top:1px solid var(--line);margin-top:8px;padding-top:12px;color:var(--ink);font-family:var(--serif);font-size:1.2rem}
-  .opt{width:100%;text-align:left;border:1px solid var(--line2);background:transparent;padding:15px 16px;margin-bottom:12px;display:flex;align-items:center;gap:12px;cursor:pointer;color:var(--inkmut)}
-  .troia{width:100%;border:none;cursor:pointer;background:var(--navy);color:var(--ivory);padding:16px 18px;display:flex;align-items:center;gap:13px;border-top:2px solid var(--brass);font-family:var(--sans)}
-  .troia .mk{width:34px;height:34px}.troia b{font-size:.95rem}.troia small{display:block;font-size:.7rem;color:#9FB1CB;margin-top:2px}.troia .tag{margin-left:auto;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;border:1px solid var(--brass);padding:5px 9px}
-  .hint{margin-top:14px;font-size:.76rem;color:var(--inkmut)}
+  :root{
+    --bg:#09090B;--panel:#121216;--panel2:#17171D;--line:#232329;--line2:#33333C;
+    --txt:#ECECEF;--mut:#8B8B95;--dim:#5E5E68;
+    --gold:#C6A15B;--good:#4ADE9E;
+    --ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --serif:"Hoefler Text","Palatino Linotype",Palatino,Georgia,serif}
+  *{box-sizing:border-box;margin:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--txt);font-family:var(--ui);-webkit-font-smoothing:antialiased;line-height:1.55}
+  a{color:inherit;text-decoration:none}button{font-family:inherit}img{max-width:100%;display:block}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+  header{position:sticky;top:0;z-index:40;background:rgba(9,9,11,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+  .hd{display:flex;align-items:center;gap:28px;height:66px}
+  .logo{display:flex;align-items:baseline;gap:2px;font-family:var(--serif);font-size:1.32rem;letter-spacing:.02em;cursor:pointer}
+  .logo b{font-weight:500}.logo span{color:var(--gold);font-weight:500}
+  nav.main{display:flex;gap:26px}@media(max-width:820px){nav.main{display:none}}
+  nav.main a{color:var(--mut);font-size:.82rem;letter-spacing:.02em;cursor:pointer;transition:color .15s}nav.main a:hover{color:var(--txt)}
+  .rt{margin-left:auto;display:flex;align-items:center;gap:8px}
+  .ic{position:relative;width:40px;height:40px;display:flex;align-items:center;justify-content:center;color:var(--mut);cursor:pointer;transition:color .15s}.ic:hover{color:var(--txt)}
+  .ic .cnt{position:absolute;top:5px;right:2px;background:var(--gold);color:#0A0A0B;font-size:.6rem;font-weight:800;min-width:15px;height:15px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+  .view{display:none}.view.on{display:block}
+  .hero{margin-top:34px;display:grid;grid-template-columns:1fr 360px;gap:44px;align-items:center}
+  @media(max-width:820px){.hero{grid-template-columns:1fr;gap:26px}}
+  .hero .kk{font-size:.68rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gold)}
+  .hero h1{font-family:var(--serif);font-weight:500;font-size:3.1rem;line-height:1.04;letter-spacing:-.01em;margin:14px 0 14px;text-wrap:balance}
+  .hero p{color:var(--mut);font-size:1rem;max-width:440px}
+  .hero .cta{display:flex;align-items:center;gap:20px;margin-top:26px}
+  .btn{background:var(--txt);color:#0A0A0B;font-weight:600;font-size:.9rem;border:none;padding:13px 26px;cursor:pointer;transition:opacity .15s}.btn:hover{opacity:.86}
+  .hero .pr{font-size:1.15rem;font-weight:600}.hero .pr s{color:var(--dim);font-weight:400;margin-right:9px}
+  .hero .cov{justify-self:end;width:100%;max-width:340px}
+  .sec{margin-top:64px}
+  .sech{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:22px;border-bottom:1px solid var(--line);padding-bottom:14px}
+  .sech h2{font-family:var(--serif);font-weight:500;font-size:1.5rem;letter-spacing:.01em}
+  .sech a{color:var(--mut);font-size:.8rem;cursor:pointer}.sech a:hover{color:var(--txt)}
+  .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
+  @media(max-width:940px){.cards{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:660px){.cards{grid-template-columns:repeat(2,1fr)}}
+  .card{cursor:pointer;transition:transform .2s ease}.card:hover{transform:translateY(-3px)}
+  .cap{aspect-ratio:3/4;position:relative;overflow:hidden;background:linear-gradient(165deg,var(--c1),var(--c2));border:1px solid var(--line)}
+  .cap .art{position:absolute;inset:0;width:100%;height:100%}
+  .cap .disc{position:absolute;top:12px;right:12px;background:rgba(10,10,11,.72);border:1px solid rgba(255,255,255,.14);color:#fff;font-size:.68rem;font-weight:700;padding:3px 8px;z-index:2;letter-spacing:.02em}
+  .cap .cft{position:absolute;left:0;right:0;bottom:0;padding:44px 16px 15px;background:linear-gradient(to top,rgba(6,6,8,.92) 20%,transparent)}
+  .cap .gn{font-size:.62rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ac)}
+  .cap .tt{font-family:var(--serif);font-size:1.16rem;font-weight:500;line-height:1.12;margin-top:4px;color:#fff}
+  .cbody{padding:12px 2px 4px;display:flex;align-items:center;justify-content:space-between}
+  .plat{font-size:.72rem;color:var(--mut);letter-spacing:.02em}
+  .price{text-align:right}.price s{color:var(--dim);font-size:.74rem;margin-right:7px}.price b{font-size:1rem;font-weight:600}
+  .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:34px}@media(max-width:820px){.pgrid{grid-template-columns:1fr;gap:30px}}
+  .pcov{max-width:420px}
+  .pinfo h1{font-family:var(--serif);font-weight:500;font-size:2.2rem;letter-spacing:-.01em;line-height:1.06}
+  .pinfo .gn{color:var(--gold);font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;margin-top:8px}
+  .pinfo .stars{display:flex;align-items:center;gap:9px;margin-top:14px;color:var(--mut);font-size:.84rem}.pinfo .stars b{color:var(--gold);letter-spacing:2px}
+  .pdesc{color:#C7C7CE;margin-top:18px;font-size:.96rem;line-height:1.7}
+  .pbuy{margin-top:26px;padding-top:22px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+  .pbuy .p{font-size:1.9rem;font-weight:600}.pbuy .p s{color:var(--dim);font-weight:400;font-size:1.05rem;margin-right:10px}.pbuy .p .d{color:var(--gold);font-size:.9rem;margin-left:10px}
+  .pmeta{margin-top:22px;display:grid;grid-template-columns:1fr 1fr;gap:18px 30px}
+  .pmeta .k{color:var(--mut);font-size:.68rem;text-transform:uppercase;letter-spacing:.1em}.pmeta .v{margin-top:3px;font-size:.9rem}
+  .back{color:var(--mut);font-size:.84rem;cursor:pointer;display:inline-flex;gap:7px;margin-top:36px}.back:hover{color:var(--txt)}
+  .cgrid{display:grid;grid-template-columns:1.15fr 1fr;gap:44px;margin-top:30px}@media(max-width:820px){.cgrid{grid-template-columns:1fr}}
+  h2.ct{font-family:var(--serif);font-weight:500;font-size:1.25rem;margin-bottom:18px}
+  .citem{display:flex;gap:16px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+  .citem .th{width:66px;flex:none;aspect-ratio:3/4;overflow:hidden;border:1px solid var(--line)}
+  .citem .nm{font-family:var(--serif);font-size:1.05rem}.citem .mt{color:var(--mut);font-size:.8rem;margin-top:4px}.citem .pp{margin-left:auto;font-weight:600}
+  .ctot{margin-top:18px}.ctot .r{display:flex;justify-content:space-between;padding:7px 0;color:var(--mut);font-size:.92rem}
+  .ctot .r.big{border-top:1px solid var(--line);margin-top:8px;padding-top:14px;color:var(--txt);font-family:var(--serif);font-size:1.5rem}
+  .lb{font-size:.66rem;text-transform:uppercase;letter-spacing:.14em;color:var(--mut);margin-bottom:14px}
+  .lb2{font-size:.64rem;text-transform:uppercase;letter-spacing:.14em;color:var(--mut);margin-bottom:12px}
+  .methods{display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
+  .opt{width:100%;text-align:left;border:1px solid var(--line);background:transparent;color:var(--txt);padding:14px 15px;display:flex;align-items:center;gap:12px;cursor:pointer;font-size:.9rem;font-weight:600;transition:border-color .15s}
+  .opt:hover{border-color:var(--line2)}.opt.sel{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}
+  .opt .rd{width:15px;height:15px;border-radius:50%;border:1.5px solid var(--line2);flex:none;position:relative}
+  .opt.sel .rd{border-color:var(--gold)}.opt.sel .rd:after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--gold)}
+  .opt .mi{margin-left:auto;color:var(--mut);font-size:.72rem;font-weight:500}
+  .panel{display:none;margin-bottom:18px}.panel.on{display:block}
+  .fl{margin-bottom:12px}.fl label{display:block;font-size:.64rem;text-transform:uppercase;letter-spacing:.1em;color:var(--mut);margin-bottom:6px}
+  .fl input{width:100%;background:var(--panel);border:1px solid var(--line2);color:var(--txt);font-size:.92rem;padding:11px 12px;font-family:inherit}.fl input:focus{outline:none;border-color:var(--gold)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .btn.full{width:100%;justify-content:center;display:flex;gap:6px;margin-top:4px}.btn.pp{background:#F5C451;color:#0A0A0B}
+  .pnote{color:var(--dim);font-size:.74rem;margin-top:10px;text-align:center}
+  .netsel{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+  .net{display:flex;align-items:center;gap:9px;border:1px solid var(--line);background:var(--panel);color:var(--txt);font-size:.9rem;font-weight:600;padding:13px 14px;cursor:pointer;transition:border-color .15s}
+  .net:hover{border-color:var(--line2)}.net.sel{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}
+  .net i{width:9px;height:9px;border-radius:50%;flex:none}
+  .cryp{border:1px solid var(--line);padding:16px;background:var(--panel)}
+  .cryp .cl{font-size:.84rem;color:var(--mut);line-height:1.5;margin-bottom:11px}.cryp .cl b{color:var(--txt)}
+  .caddr{display:flex;align-items:center;gap:9px;border:1px solid var(--line2);background:var(--bg);padding:11px 12px}
+  .caddr code{flex:1;font-family:ui-monospace,Menlo,monospace;font-size:.75rem;color:var(--txt);word-break:break-all;line-height:1.45}
+  .caddr button{border:none;background:var(--txt);color:#0A0A0B;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;padding:8px 11px;cursor:pointer;font-weight:700}
+  .cwait{display:flex;align-items:center;gap:9px;color:var(--mut);font-size:.82rem;margin-top:14px}
+  .spin{width:13px;height:13px;border:2px solid var(--line2);border-top-color:var(--gold);border-radius:50%;animation:sp .8s linear infinite;flex:none}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  #pay-slot{margin-top:14px}
+  .done{margin-top:16px;border:1px solid var(--good);background:rgba(74,222,158,.07);color:#B7F0D8;padding:14px;font-size:.86rem;display:none}.done.on{display:block}.done a{color:var(--good);border-bottom:1px solid var(--good)}
+  footer{margin-top:80px;border-top:1px solid var(--line);color:var(--mut);font-size:.82rem}
+  .fgrid{display:flex;flex-wrap:wrap;gap:48px;padding:40px 0}
+  .fgrid .col b{color:var(--txt);display:block;margin-bottom:11px;font-size:.86rem;font-weight:600}.fgrid .col a{display:block;color:var(--mut);padding:4px 0;cursor:pointer}.fgrid .col a:hover{color:var(--txt)}
+  .fbot{border-top:1px solid var(--line);padding:18px 0;text-align:center;color:var(--dim)}
 </style></head><body>
-  <div class="nav"><div class="wm">MERIDIAN SUPPLY</div><div style="font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--inkmut)">Ödeme</div></div>
-  <div class="wrap">
-    <div><h2>Sipariş Özeti</h2>
-      <div class="item"><div class="ph"></div><div><div class="nm">İpek Fular</div><div class="meta">Desenli · SKU MS-114</div></div><div class="pr">₺199,00</div></div>
-      <div class="sum"><div class="r"><span>Ara toplam</span><span>₺199,00</span></div><div class="r"><span>Uluslararası kargo</span><span>₺51,00</span></div><div class="r tot" style="display:flex;justify-content:space-between"><span>Toplam</span><span>₺250,00</span></div></div>
+
+  <header><div class="wrap hd">
+    <div class="logo" onclick="go('home')"><b>NOVA</b><span>KEY</span></div>
+    <nav class="main"><a onclick="go('home')">Store</a><a onclick="go('home')">New</a><a onclick="go('home')">Deals</a><a onclick="go('home')">Support</a></nav>
+    <div class="rt">
+      <div class="ic" title="Account"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div>
+      <div class="ic" title="Cart" onclick="if(CART)go('checkout')"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6h15l-1.5 9h-12z"/><circle cx="9" cy="20" r="1.3"/><circle cx="18" cy="20" r="1.3"/><path d="M6 6L5 3H2"/></svg><span class="cnt" id="cnt" style="display:none">0</span></div>
     </div>
-    <div><h2>Ödeme Yöntemi</h2>
-      <button class="opt"><span style="width:16px;height:16px;border:1px solid var(--line2)"></span>Kredi / Banka Kartı</button>
-      <button class="troia" onclick="location.href='/checkout?merchantId=merchant.demo-store&orderId=MS-4821&grossTL=25000&valorDays=7'">
-        <svg class="mk" viewBox="0 0 1460 1420"><rect width="1460" height="1420" fill="#F4EFE4"/><g transform="translate(0.000000,1420.000000) scale(0.100000,-0.100000)"><path fill="#0C1B30" d="M0 7100 l0 -7100 7300 0 7300 0 0 7100 0 7100 -7300 0 -7300 0 0
--7100z m9523 5091 c-4 -3 -9 -40 -11 -81 -1 -41 -9 -129 -17 -195 -8 -66 -16
--138 -19 -160 -2 -22 -11 -96 -19 -165 -9 -69 -27 -224 -41 -345 -29 -249 -52
--437 -66 -540 -6 -38 -14 -113 -20 -165 -5 -52 -17 -149 -25 -215 -20 -154
--64 -515 -72 -581 -4 -37 -1 -61 11 -84 9 -18 16 -40 16 -48 0 -7 6 -28 13
--45 22 -51 38 -99 48 -142 6 -22 14 -44 20 -49 5 -6 9 -18 9 -28 0 -9 6 -32
-14 -50 20 -50 37 -99 47 -143 6 -22 14 -44 20 -49 5 -6 9 -19 9 -30 0 -12 7
--34 15 -50 8 -15 15 -36 15 -45 0 -9 7 -29 15 -45 8 -15 15 -36 15 -45 0 -9 7
--29 15 -45 8 -15 15 -36 15 -45 0 -9 7 -29 15 -45 8 -15 15 -36 15 -45 0 -9 7
--29 15 -45 8 -15 15 -35 15 -43 0 -8 6 -29 14 -46 7 -18 24 -66 37 -107 12
--41 29 -86 36 -100 7 -14 13 -33 13 -42 0 -10 6 -32 14 -50 8 -18 24 -66 37
--106 12 -40 26 -75 30 -78 5 -3 9 -17 9 -32 0 -15 6 -36 14 -47 7 -11 16 -33
-18 -50 6 -32 22 -81 43 -130 8 -16 16 -41 18 -55 6 -33 26 -88 43 -123 8 -16
-14 -39 14 -51 0 -12 7 -31 15 -42 28 -37 19 -84 -29 -145 -24 -30 -47 -65 -50
--76 -4 -12 -13 -24 -22 -27 -8 -3 -23 -26 -34 -51 -11 -25 -24 -45 -30 -45 -6
-0 -19 -20 -30 -45 -11 -25 -24 -45 -30 -45 -6 0 -17 -15 -25 -34 -8 -18 -23
--44 -34 -57 -42 -50 -121 -160 -121 -169 0 -5 -13 -25 -30 -43 -16 -19 -30
--39 -30 -44 0 -5 -13 -24 -30 -43 -16 -19 -29 -40 -30 -47 0 -6 -16 -30 -35
--53 -19 -23 -35 -47 -35 -54 0 -7 -12 -23 -26 -37 -14 -13 -35 -39 -46 -59
--12 -19 -34 -50 -50 -68 -15 -18 -28 -38 -28 -44 0 -5 -13 -26 -30 -45 -16
--18 -30 -39 -30 -45 0 -5 -13 -26 -30 -45 -16 -18 -30 -39 -30 -45 0 -5 -13
--26 -30 -45 -16 -18 -30 -40 -30 -47 0 -7 -10 -21 -21 -32 -12 -10 -36 -41
--54 -69 -18 -27 -42 -59 -54 -69 -11 -11 -21 -25 -21 -32 0 -7 -13 -28 -29
--47 -26 -28 -33 -51 -52 -158 -12 -68 -24 -142 -26 -164 -1 -22 -7 -60 -13
--85 -6 -25 -12 -63 -15 -85 -3 -22 -11 -74 -19 -115 -8 -41 -22 -120 -31 -175
--20 -125 -43 -262 -57 -340 -5 -33 -12 -75 -13 -93 -2 -18 -10 -70 -19 -115
--14 -78 -26 -150 -62 -367 -8 -52 -21 -126 -28 -165 -14 -72 -10 -164 14 -325
-13 -89 26 -211 41 -375 6 -66 14 -136 20 -155 5 -19 13 -89 19 -155 11 -129
-31 -305 51 -449 l12 -88 -209 -417 c-115 -229 -215 -420 -221 -424 -7 -4 -13
--19 -13 -32 0 -14 -5 -25 -11 -25 -5 0 -15 -13 -20 -30 l-11 -30 -901 -1
-c-496 0 -919 -1 -940 -2 -25 -1 -44 4 -54 15 -8 9 -66 119 -130 245 -63 125
--118 232 -123 238 -4 5 -47 87 -94 180 -48 94 -97 188 -111 210 -27 45 -32
-107 -14 196 5 30 14 97 19 149 4 52 13 131 19 175 13 99 36 302 56 500 9 83
-23 196 31 252 7 56 14 123 15 150 1 26 4 59 8 72 7 25 -2 100 -34 281 -9 52
--22 136 -30 185 -7 50 -18 115 -23 145 -11 54 -37 216 -46 275 -2 17 -9 57
--15 90 -17 90 -37 208 -56 325 -9 58 -21 128 -26 155 -6 28 -14 77 -18 110 -4
-33 -13 83 -19 110 -12 52 -30 161 -39 229 -4 25 -21 59 -49 97 -24 31 -44 61
--44 67 0 5 -7 15 -16 23 -8 7 -24 29 -35 48 -11 20 -46 74 -80 121 -33 47 -75
-108 -93 135 -19 28 -43 60 -55 72 -11 12 -21 24 -21 27 0 7 -188 285 -220 326
--16 21 -30 41 -30 45 0 3 -19 32 -43 63 -23 31 -86 122 -140 202 -54 80 -125
-183 -158 230 -110 156 -169 249 -169 265 0 19 28 113 40 136 5 9 12 33 15 53
-4 20 11 39 16 42 5 3 9 14 9 26 0 11 6 34 14 51 7 18 23 64 35 102 12 39 26
-79 31 90 4 11 18 52 30 90 11 39 27 86 35 105 7 19 29 85 49 145 38 118 55
-168 67 200 11 32 69 207 79 240 4 17 14 46 21 65 6 19 17 51 24 70 7 19 18 51
-24 70 7 19 16 49 21 65 8 28 17 54 45 135 32 88 97 289 106 325 6 22 14 44 20
-49 5 6 9 19 9 30 0 12 7 34 15 50 17 33 20 161 5 216 -5 20 -14 87 -20 150 -5
-63 -16 165 -24 225 -8 61 -21 171 -29 245 -9 74 -18 146 -21 160 -4 14 -11 72
--16 130 -6 58 -17 157 -25 220 -8 63 -21 176 -29 250 -8 74 -20 162 -26 195
--5 33 -10 88 -10 122 0 34 -4 72 -10 85 -5 13 -14 68 -19 123 -17 172 -32 297
--46 382 -8 47 -11 92 -6 105 7 19 10 17 29 -24 12 -24 22 -50 22 -57 0 -7 11
--36 24 -65 14 -29 29 -72 36 -94 6 -23 15 -44 20 -47 6 -3 10 -16 10 -28 0
--12 14 -49 30 -81 17 -32 30 -66 30 -75 0 -9 7 -29 15 -45 8 -15 15 -36 15
--45 0 -9 13 -43 30 -75 16 -33 32 -74 36 -90 3 -17 10 -36 15 -42 5 -6 17 -37
-28 -70 10 -32 26 -72 35 -89 9 -16 16 -37 16 -46 0 -8 11 -39 25 -67 14 -29
-25 -58 25 -64 1 -7 9 -31 20 -53 11 -22 19 -46 20 -54 0 -8 13 -43 30 -78 17
--34 30 -70 30 -79 0 -9 7 -28 15 -42 8 -15 24 -55 36 -90 12 -34 26 -65 30
--68 5 -3 9 -16 9 -30 0 -13 14 -51 30 -84 17 -33 30 -68 30 -78 0 -10 7 -27
-15 -38 8 -10 15 -30 15 -44 0 -14 14 -49 30 -79 17 -30 30 -62 30 -72 0 -25
-42 -109 54 -109 15 0 645 630 673 674 14 22 44 60 67 85 23 25 50 60 61 76 10
-17 40 53 66 80 25 28 49 60 53 72 4 11 31 45 61 74 30 29 55 58 55 65 0 6 27
-41 60 77 33 36 60 69 60 75 0 5 26 38 58 73 32 35 68 80 79 99 12 19 40 53 62
-75 23 21 41 43 41 48 0 18 53 77 69 77 10 0 31 -19 49 -42 51 -69 165 -213
-202 -256 19 -21 62 -74 95 -117 33 -43 86 -109 118 -146 31 -37 57 -71 57 -74
-0 -4 29 -41 65 -84 122 -144 185 -223 185 -233 0 -11 690 -708 700 -708 9 0
-30 47 30 66 0 8 9 33 20 57 19 42 34 81 72 192 11 33 24 65 28 70 5 6 26 60
-46 120 21 61 43 119 50 130 6 11 20 45 29 75 10 30 21 60 25 65 4 6 13 26 18
-45 16 51 61 172 71 191 5 9 24 58 42 110 17 52 45 122 60 156 16 34 29 66 29
-72 0 5 20 60 45 122 25 62 45 118 45 124 0 6 9 29 20 50 11 22 25 54 30 70 19
-65 60 172 79 212 12 23 21 47 21 52 0 6 11 35 25 65 14 30 25 61 25 69 0 33
-15 26 18 -9 2 -20 0 -40 -5 -43z"/></g></svg>
-        <div><b>Troy kartı ile öde</b><small>Troia · built on Arc</small></div><span class="tag">Yurtdışı · anında</span>
-      </button>
-      <p class="hint">Türkiye'deki Troy kartınla öde — Meridian Supply saniyeler içinde USDC alır. <b>Troia eklentisini</b> araç çubuğundan da açabilirsin.</p>
+  </div></header>
+
+  <!-- HOME -->
+  <section class="view on" id="v-home"><div class="wrap">
+    <div class="hero">
+      <div>
+        <div class="kk">Featured this week</div>
+        <h1>God of War<br>Ragnarök</h1>
+        <p>Kratos and Atreus journey across the Nine Realms as Ragnarök looms. Brutal Norse combat and a sweeping story.</p>
+        <div class="cta"><button class="btn" onclick="open_('gow')">View &amp; Buy</button><div class="pr"><s>$69.99</s>$9.99</div></div>
+      </div>
+      <div class="cov" id="heroCov"></div>
     </div>
-  </div>
+    <div class="sec">
+      <div class="sech"><h2>Best Sellers</h2><a onclick="go('home')">View all</a></div>
+      <div class="cards" id="grid"></div>
+    </div>
+  </div></section>
+
+  <!-- PRODUCT -->
+  <section class="view" id="v-product"><div class="wrap">
+    <div class="pgrid">
+      <div class="pcov" id="pcov"></div>
+      <div class="pinfo">
+        <h1 id="pTitle">—</h1><div class="gn" id="pGenre">—</div>
+        <div class="stars"><b>★★★★☆</b><span id="pRev">4.6 · 1,284 reviews</span></div>
+        <p class="pdesc" id="pDesc">—</p>
+        <div class="pbuy">
+          <div class="p"><s id="pOld">$69.99</s><span id="pPrice">$9.99</span><span class="d" id="pDisc">-86%</span></div>
+          <button class="btn" onclick="checkout()">Add to Cart &amp; Checkout</button>
+        </div>
+        <div class="pmeta">
+          <div><div class="k">Platform</div><div class="v">PlayStation 5</div></div>
+          <div><div class="k">Delivery</div><div class="v">Instant · digital code</div></div>
+          <div><div class="k">Region</div><div class="v">Global</div></div>
+          <div><div class="k">Languages</div><div class="v">12 incl. English</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="back" onclick="go('home')">← Back to store</div>
+  </div></section>
+
+  <!-- CHECKOUT -->
+  <section class="view" id="v-checkout"><div class="wrap">
+    <h1 style="font-family:var(--serif);font-weight:500;font-size:1.9rem;margin-top:32px">Checkout</h1>
+    <div class="cgrid">
+      <div>
+        <h2 class="ct">Order Summary</h2>
+        <div class="citem"><div class="th" id="ckTh"></div><div><div class="nm" id="ckNm">—</div><div class="mt" id="ckMt">PS5 Digital Code · Global</div></div><div class="pp" id="ckPp">—</div></div>
+        <div class="ctot">
+          <div class="r"><span>Subtotal</span><span id="ckSub">—</span></div>
+          <div class="r"><span>Service fee</span><span>$0.00</span></div>
+          <div class="r big"><span>Total</span><span id="ckTot">—</span></div>
+        </div>
+      </div>
+      <div>
+        <h2 class="ct">Payment</h2>
+        <div class="methods">
+          <button class="opt sel" data-m="card"><span class="rd"></span>Credit / Debit Card<span class="mi">VISA · Mastercard</span></button>
+          <button class="opt" data-m="paypal"><span class="rd"></span>PayPal</button>
+          <button class="opt" data-m="crypto"><span class="rd"></span>Pay with crypto<span class="mi">USDC</span></button>
+        </div>
+
+        <div class="panel on" id="panel-card">
+          <div class="fl"><label>Card number</label><input placeholder="1234 5678 9012 3456" autocomplete="off"></div>
+          <div class="fl"><label>Name on card</label><input placeholder="Full name" autocomplete="off"></div>
+          <div class="row2"><div class="fl"><label>Expiry</label><input placeholder="MM / YY"></div><div class="fl"><label>CVC</label><input placeholder="123"></div></div>
+          <button class="btn full" id="cardPay" type="button">Pay <span id="cardAmt">$9.99</span></button>
+        </div>
+
+        <div class="panel" id="panel-paypal">
+          <button class="btn full pp" id="ppPay" type="button">Continue with PayPal</button>
+        </div>
+
+        <div class="panel" id="panel-crypto">
+          <div class="lb2">Choose a network</div>
+          <div class="netsel" id="netsel"></div>
+          <div class="cryp" id="cryp" style="display:none">
+            <div class="cl">Send <b id="cryAmt">—</b> USDC on <b id="cryNet">—</b> to this address:</div>
+            <div class="caddr"><code id="cryAddr">—</code><button id="cryCopy" type="button">Copy</button></div>
+            <div class="cwait" id="cwait"><span class="spin"></span>Waiting for payment…</div>
+            <div id="pay-slot"></div>
+          </div>
+        </div>
+
+        <div class="done" id="done">✓ Payment received. Your PS5 code has been emailed to you. <a id="doneTx" target="_blank" rel="noopener">View transaction on Arc</a></div>
+      </div>
+    </div>
+    <div class="back" onclick="go('home')">← Continue shopping</div>
+  </div></section>
+
+  <footer><div class="wrap">
+    <div class="fgrid">
+      <div class="col" style="flex:1;min-width:220px"><div class="logo" style="margin-bottom:12px"><b>NOVA</b><span>KEY</span></div><div style="max-width:280px;color:var(--mut)">Digital PlayStation 5 codes. Instant delivery, official products, region-free.</div></div>
+      <div class="col"><b>Store</b><a>New releases</a><a>Deals</a><a>Best sellers</a></div>
+      <div class="col"><b>Support</b><a>Order tracking</a><a>Refunds</a><a>FAQ</a></div>
+      <div class="col"><b>Company</b><a>About</a><a>Privacy</a><a>Terms</a></div>
+    </div>
+    <div class="fbot">© 2026 NOVAKEY · digital PlayStation 5 codes</div>
+  </div></footer>
+
+<script>
+  var PRODUCTS = [
+    {id:"gow", t:"God of War Ragnarök", g:"Action-Adventure", mo:"rune", price:9.99, old:69.99, disc:86, c1:"#173049",c2:"#080F18",ac:"#8FD0EC", d:"Kratos and Atreus journey across the Nine Realms as Ragnarök looms. Brutal Norse combat, a sweeping story and vast mythic worlds to explore."},
+    {id:"spider", t:"Marvel's Spider-Man 2", g:"Action", mo:"spider", price:9.99, old:69.99, disc:86, c1:"#320810",c2:"#0A0406",ac:"#FF4D57", d:"Peter Parker and Miles Morales face the Symbiote threat across a bigger, fully traversable New York. Faster web-swinging, two heroes."},
+    {id:"horizon", t:"Horizon Forbidden West", g:"Action RPG", mo:"sun", price:7.99, old:59.99, disc:87, c1:"#123A34",c2:"#07110F",ac:"#EBB05A", d:"Aloy ventures into a dangerous frontier of machine beasts and lost tech to save a dying world. Open exploration, deep skill trees."},
+    {id:"gt7", t:"Gran Turismo 7", g:"Racing", mo:"speed", price:6.99, old:69.99, disc:90, c1:"#0F2340",c2:"#060B14",ac:"#5FB0F2", d:"The definitive real-driving simulator. 400+ cars, iconic tracks, dynamic weather and stunning ray-traced replays."},
+    {id:"ratchet", t:"Ratchet & Clank: Rift Apart", g:"Platformer", mo:"bolt", price:5.99, old:69.99, disc:91, c1:"#241247",c2:"#0B0716",ac:"#F2C566", d:"Blast across dimensions with a lombax and his robot pal. Reality-hopping action, wild weapons and dazzling set pieces."},
+    {id:"demons", t:"Demon's Souls", g:"Souls RPG", mo:"sword", price:8.99, old:69.99, disc:87, c1:"#241E19",c2:"#0B0908",ac:"#D0563F", d:"A ground-up remake of the genre-defining action-RPG. Punishing combat, haunting worlds and hard-won victory in Boletaria."},
+    {id:"returnal", t:"Returnal", g:"Roguelike Shooter", mo:"orbit", price:4.99, old:69.99, disc:93, c1:"#280A44",c2:"#0A0416",ac:"#FF8A4C", d:"Break the cycle. A third-person roguelike where every death reshapes a hostile alien planet. Fast, bullet-hell combat."},
+    {id:"ghost", t:"Ghost of Tsushima", g:"Action-Adventure", mo:"torii", price:9.49, old:69.99, disc:86, c1:"#320B10",c2:"#0C0605",ac:"#F2B65A", d:"A lone samurai defends Tsushima against the Mongol invasion. Elegant swordplay, a breathtaking open world and the way of the Ghost."}
+  ];
+  var NETS = [{id:"arc",name:"Arc",c:"#5B8DEF"},{id:"arb",name:"Arbitrum",c:"#28A0F0"},{id:"eth",name:"Ethereum",c:"#627EEA"},{id:"avax",name:"Avalanche",c:"#E84142"}];
+  var byId = {}; PRODUCTS.forEach(function(p){byId[p.id]=p;});
+  var CART = null, CUR = null;
+  function usd(n){ return "$" + Number(n).toFixed(2); }
+
+  function motif(mo, ac){
+    var s='stroke="'+ac+'" fill="none" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"';
+    var g;
+    switch(mo){
+      case "rune": g='<g '+s+' opacity=".92"><path d="M150 96 L108 172 L192 172 Z"/><path d="M120 132 L82 204 L158 204 Z"/><path d="M180 132 L142 204 L218 204 Z"/></g>'; break;
+      case "spider": g='<g '+s+'><ellipse cx="150" cy="152" rx="14" ry="22" fill="'+ac+'"/>'+
+        '<path d="M139 138 C116 122 104 118 88 104 M139 152 C112 150 98 150 80 150 M139 166 C114 178 102 184 88 198"/>'+
+        '<path d="M161 138 C184 122 196 118 212 104 M161 152 C188 150 202 150 220 150 M161 166 C186 178 198 184 212 198"/></g>'; break;
+      case "sun": g='<g '+s+'><circle cx="150" cy="128" r="30"/>'+
+        '<g opacity=".85"><path d="M150 82 v-16 M150 174 v16 M104 128 h-16 M196 128 h16 M117 95 l-11 -11 M183 95 l11 -11 M117 161 l-11 11 M183 161 l11 11"/></g>'+
+        '<path d="M56 234 L112 178 L156 220 L206 168 L244 234" opacity=".9"/></g>'; break;
+      case "speed": g='<g '+s+' stroke-width="11"><circle cx="150" cy="150" r="74" opacity=".18" stroke-width="4"/>'+
+        '<path d="M112 108 L156 150 L112 192"/><path d="M150 108 L194 150 L150 192"/></g>'; break;
+      case "bolt": g='<g '+s+'><path d="M150 92 L194 117 L194 167 L150 192 L106 167 L106 117 Z"/><circle cx="150" cy="142" r="17"/>'+
+        '<path d="M150 44 l8 26 -8 -7 -8 7 z" fill="'+ac+'" stroke="none" opacity=".8"/></g>'; break;
+      case "sword": g='<g '+s+' stroke-width="6"><path d="M150 72 L150 214"/><path d="M120 108 L180 108"/>'+
+        '<path d="M150 214 L150 236"/><path d="M104 238 Q150 222 196 238" opacity=".7"/></g>'; break;
+      case "orbit": g='<g '+s+'><circle cx="150" cy="150" r="16" fill="'+ac+'"/>'+
+        '<ellipse cx="150" cy="150" rx="72" ry="30"/><ellipse cx="150" cy="150" rx="72" ry="30" transform="rotate(60 150 150)"/><ellipse cx="150" cy="150" rx="72" ry="30" transform="rotate(120 150 150)"/></g>'; break;
+      case "torii": g='<g '+s+' stroke-width="7"><circle cx="150" cy="118" r="28" fill="'+ac+'" opacity=".85" stroke="none"/>'+
+        '<path d="M92 150 H208 M104 172 H196 M118 150 V232 M182 150 V232"/></g>'; break;
+      default: g='<circle cx="150" cy="150" r="40" '+s+'/>';
+    }
+    return '<svg class="art" viewBox="0 0 300 400" preserveAspectRatio="xMidYMid slice">'+g+'</svg>';
+  }
+  function cover(p, big, mini){
+    return '<div class="cap" style="--c1:'+p.c1+';--c2:'+p.c2+';--ac:'+p.ac+'">'+
+      (big?'':'<span class="disc">-'+p.disc+'%</span>')+ motif(p.mo,p.ac) +
+      (mini?'':'<div class="cft"><div class="gn">'+p.g+'</div><div class="tt">'+p.t+'</div></div>')+'</div>';
+  }
+  // (sipariş, ağ) başına deterministik demo deposit adresi
+  function depositAddr(order, net){
+    var seed = order + "|" + net + "|nk", h = 0x811c9dc5, hex = "";
+    for (var i=0;i<seed.length;i++){ h ^= seed.charCodeAt(i); h = (h*0x01000193)>>>0; }
+    var x=h;
+    for (var k=0;k<40;k++){ x=(x*1103515245+12345+k*2654435761)>>>0; hex += "0123456789abcdef"[(x>>>((k%8)*4))&15]; }
+    return "0x"+hex;
+  }
+
+  (function(){
+    document.getElementById("heroCov").innerHTML = cover(byId["gow"], true);
+    var g = document.getElementById("grid"), h = "";
+    PRODUCTS.forEach(function(p){
+      h += '<div class="card" onclick="open_(\''+p.id+'\')">'+cover(p)+
+        '<div class="cbody"><span class="plat">PlayStation 5</span>'+
+        '<span class="price"><s>'+usd(p.old)+'</s><b>'+usd(p.price)+'</b></span></div></div>';
+    });
+    g.innerHTML = h;
+    var ns = document.getElementById("netsel"), nh = "";
+    NETS.forEach(function(n){ nh += '<button class="net" data-net="'+n.id+'"><i style="background:'+n.c+'"></i>'+n.name+'</button>'; });
+    ns.innerHTML = nh;
+  })();
+
+  function go(v){ ["home","product","checkout"].forEach(function(x){ document.getElementById("v-"+x).classList.toggle("on", x===v); }); window.scrollTo(0,0); }
+  function open_(id){
+    var p = byId[id]; if(!p) return; CUR = p;
+    document.getElementById("pcov").innerHTML = cover(p, true);
+    document.getElementById("pTitle").textContent = p.t;
+    document.getElementById("pGenre").textContent = p.g;
+    document.getElementById("pDesc").textContent = p.d;
+    document.getElementById("pPrice").textContent = usd(p.price);
+    document.getElementById("pOld").textContent = usd(p.old);
+    document.getElementById("pDisc").textContent = "-"+p.disc+"%";
+    go("product");
+  }
+
+  // hidden intent — mağaza sadece merchantId + tutar taşır; ağ seçilince network+address eklenir
+  function writeIntent(p, order, net, addr){
+    var intent = { merchantId:"merchant.demo-store", merchantName:"NOVAKEY", itemName:p.t+" (PS5)", orderId:order, grossUSD:Math.round(p.price*100), valorDays:7 };
+    if(net){ intent.network = net; intent.address = addr; }
+    document.getElementById("troiaIntent").textContent = JSON.stringify(intent);
+  }
+  function checkout(){
+    var p = CUR; if(!p) return;
+    var order = "NK-" + p.id.toUpperCase().slice(0,3) + "-" + String(Date.now()).slice(-5);
+    CART = { p:p, order:order };
+    writeIntent(p, order, null, null); // ağ henüz seçilmedi
+    document.getElementById("cnt").style.display="flex"; document.getElementById("cnt").textContent="1";
+    document.getElementById("ckTh").innerHTML = cover(p, true, true);
+    document.getElementById("ckNm").textContent = p.t;
+    document.getElementById("ckMt").textContent = p.g + " · PS5 Digital Code · Global · " + order;
+    document.getElementById("ckPp").textContent = usd(p.price);
+    document.getElementById("ckSub").textContent = usd(p.price);
+    document.getElementById("ckTot").textContent = usd(p.price);
+    document.getElementById("cardAmt").textContent = usd(p.price);
+    document.getElementById("done").classList.remove("on");
+    selectMethod("card"); // varsayılan: kredi/banka kartı
+    go("checkout");
+  }
+
+  // ödeme yöntemi seçimi (web2): kart / paypal / kripto
+  function selectMethod(m){
+    Array.prototype.forEach.call(document.querySelectorAll(".opt"), function(o){ o.classList.toggle("sel", o.getAttribute("data-m")===m); });
+    ["card","paypal","crypto"].forEach(function(x){ document.getElementById("panel-"+x).classList.toggle("on", x===m); });
+    Array.prototype.forEach.call(document.querySelectorAll(".net"), function(b){ b.classList.remove("sel"); });
+    document.getElementById("cryp").style.display = "none";
+    if(CART) writeIntent(CART.p, CART.order, null, null); // kripto+ağ seçilene kadar eklenti devrede değil
+  }
+  Array.prototype.forEach.call(document.querySelectorAll(".opt"), function(o){
+    o.addEventListener("click", function(){ selectMethod(o.getAttribute("data-m")); });
+  });
+  (function(){
+    function proc(btn){ var t=btn.textContent; btn.disabled=true; btn.textContent="Processing…"; setTimeout(function(){ btn.disabled=false; btn.textContent=t; },1200); }
+    var cp=document.getElementById("cardPay"); if(cp) cp.addEventListener("click", function(){ proc(cp); });
+    var pp=document.getElementById("ppPay"); if(pp) pp.addEventListener("click", function(){ proc(pp); });
+  })();
+
+  // ağ seçimi (sitede) → adres üret + intent güncelle (eklenti bunu algılar)
+  Array.prototype.forEach.call(document.querySelectorAll(".net"), function(btn){
+    btn.addEventListener("click", function(){
+      if(!CART) return;
+      Array.prototype.forEach.call(document.querySelectorAll(".net"), function(b){ b.classList.remove("sel"); });
+      btn.classList.add("sel");
+      var net = btn.getAttribute("data-net");
+      var n = NETS.filter(function(x){return x.id===net;})[0];
+      var addr = depositAddr(CART.order, net);
+      document.getElementById("cryAmt").textContent = usd(CART.p.price);
+      document.getElementById("cryNet").textContent = n.name;
+      document.getElementById("cryAddr").textContent = addr;
+      document.getElementById("cryp").style.display = "block";
+      document.getElementById("done").classList.remove("on");
+      writeIntent(CART.p, CART.order, net, addr);
+    });
+  });
+  document.getElementById("cryCopy").addEventListener("click", function(){
+    try{ navigator.clipboard.writeText(document.getElementById("cryAddr").textContent);
+      this.textContent="Copied"; var self=this; setTimeout(function(){ self.textContent="Copy"; },1500);
+    }catch(e){}
+  });
+
+  // ödeme başarılı (eklenti bildirir) → siparişi tamamla
+  document.addEventListener("troia:paid", function(e){
+    document.getElementById("cwait").style.display = "none";
+    var d = document.getElementById("done"); d.classList.add("on");
+    var tx = (e.detail && e.detail.txHash) || "";
+    if(tx && /^0x[0-9a-fA-F]{64}$/.test(tx)) document.getElementById("doneTx").href = "https://testnet.arcscan.app/tx/" + tx;
+    document.getElementById("cnt").style.display="none";
+  });
+</script>
 </body></html>

@@ -19,7 +19,9 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   (async () => {
     try {
       if (msg.type === "troia:quote") {
-        const q = new URLSearchParams({ grossTL: String(msg.grossTL), valorDays: String(msg.valorDays) });
+        const q = new URLSearchParams({ valorDays: String(msg.valorDays) });
+        if (msg.grossUSD != null) q.set("grossUSD", String(msg.grossUSD));
+        else q.set("grossTL", String(msg.grossTL));
         sendResponse(await backend("/quote?" + q.toString()));
       } else {
         sendResponse({ ok: false, status: 0, data: { error: "unknown" } });

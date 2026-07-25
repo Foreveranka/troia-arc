@@ -1,75 +1,95 @@
-# Troia — built on Arc
+# Troia
 
-**Cross-border stablecoin settlement rail.** A user pays in Turkish Lira with a domestic **Troy card**; the merchant is settled **instantly in USDC** on Arc from a pre-funded pool. The FX spread is the revenue. **Crypto is invisible to the end user.**
+Built on Arc.
 
-> Turkey has ~90M Troy cards (₺4.8T/yr) that **stop at the border**. PayPal left Turkey in 2016; Wise blocks Turkish *receiving*. Troia turns the domestic card into a global one — pay ₺, settle USDC on Arc, in seconds.
+Troia lets someone in Turkey pay a "pay with crypto" checkout with an ordinary Troy card. The shopper never holds crypto. Troia charges the card in lira through a licensed payment provider (iyzico), then settles the merchant in USDC on Arc. The FX spread is the business.
 
-## ✅ Live on Arc testnet
+There are roughly 90 million Troy cards in Turkey and about ₺4.8 trillion of yearly volume, and nearly all of it stops at the border. PayPal left Turkey in 2016, and Wise still blocks Turkish accounts from receiving. Troia turns that domestic card into a way to pay merchants abroad: the buyer pays lira, the merchant receives USDC on Arc, in seconds.
 
-| | |
+## The flow
+
+A merchant runs a normal web2 store. At checkout the shopper can pay by card, PayPal, or crypto. If they pick crypto, the store shows a network (Arc, Arbitrum, Ethereum, Avalanche) and a deposit address, exactly like any crypto checkout. The store never mentions Troia.
+
+The Troia browser extension notices that checkout and adds one option, "pay with your Troy card." From there the shopper does two things:
+
+1. Pastes the deposit address the store showed. That is the on-chain destination.
+2. Enters the Troy card, which iyzico charges in lira.
+
+Troia takes the lira and settles the merchant in USDC on Arc. No wallet, no seed phrase, no gas for the buyer.
+
+## Live on Arc testnet
+
+| Contract | Address |
 |---|---|
-| **SettlementPool** | [`0x7c9848396392A8BE58900fa56960cd8eC1782410`](https://testnet.arcscan.app/address/0x7c9848396392A8BE58900fa56960cd8eC1782410) |
-| **MerchantRegistry** | [`0x0cEcd6aDf6f4227700B97CCA9372AB7072a15E53`](https://testnet.arcscan.app/address/0x0cEcd6aDf6f4227700B97CCA9372AB7072a15E53) |
-| **Example settle tx** | [`0xd7926788…aedb5e`](https://testnet.arcscan.app/tx/0xd7926788dfa13333bde9060eadc3c2e8db0594a9a5f481333938023893aedb5e) — signed webhook → commission → on-chain USDC to merchant |
-| Network | Arc Testnet · chainId `5042002` · USDC `0x3600…0000` (6-dec ERC-20 / native gas) · explorer `testnet.arcscan.app` |
+| SettlementPool | [`0x7c9848396392A8BE58900fa56960cd8eC1782410`](https://testnet.arcscan.app/address/0x7c9848396392A8BE58900fa56960cd8eC1782410) |
+| MerchantRegistry | [`0x0cEcd6aDf6f4227700B97CCA9372AB7072a15E53`](https://testnet.arcscan.app/address/0x0cEcd6aDf6f4227700B97CCA9372AB7072a15E53) |
 
-The full path runs live: a **signed PSP webhook** → **live FX commission** → **on-chain `settle`** paying the merchant USDC, returning a real `txHash`.
+Network: Arc testnet, chainId `5042002`, USDC `0x3600…0000` (6-decimal ERC-20, native gas), explorer `testnet.arcscan.app`.
 
-## Model A — merchants integrate, payouts are verified on-chain
+A real payment runs the whole path. iyzico charges the card in the sandbox (it shows up as a successful transaction in the merchant dashboard), the backend prices the FX commission from a live USD/TRY series, and `SettlementPool.settle` pays the merchant USDC and returns a transaction hash.
 
-The checkout page carries only a **`merchantId`**, never a raw address. `SettlementPool.settle(posRef, merchantId, …)` resolves the payout from an on-chain **`MerchantRegistry`** — so a malicious/compromised page can **never** redirect funds.
+## Payouts are verified on-chain (Model A)
+
+The checkout only ever carries a `merchantId`, never a raw wallet address. `SettlementPool.settle(posRef, merchantId, …)` looks up the payout address from an on-chain `MerchantRegistry`, so a tampered or compromised page cannot redirect funds anywhere.
 
 ```mermaid
 flowchart LR
-  U["Buyer · Troy card (₺)"] -->|iyzico hosted form| PSP["iyzico (PSP)"]
-  PSP -->|signed webhook| BE["Troia backend"]
-  BE -->|commission μ·n + z·σ·√n| ORC["USD/TRY oracle"]
+  U["Buyer, Troy card (lira)"] -->|card charge| PSP["iyzico (PSP)"]
+  PSP -->|confirmed payment| BE["Troia backend"]
+  BE -->|commission| ORC["USD/TRY oracle"]
   BE -->|settle posRef, merchantId| POOL["SettlementPool (Arc)"]
   REG["MerchantRegistry"] -.resolve payout.-> POOL
-  POOL -->|instant USDC| M["Merchant wallet"]
-  TRE["Treasury: collected ₺ → USDC via Paribu + CCTP"] -.refill.-> POOL
+  POOL -->|instant USDC| M["Merchant"]
+  TRE["Treasury: collected lira to USDC via Paribu, CCTP"] -.refill.-> POOL
 ```
 
-**Two loops** decouple speed from FX: the merchant is paid **instantly** from the pool (loop 1); collected TRY refills the pool later via a licensed exchange + **CCTP** (loop 2). The pool carries the *n*-day FX risk that the commission prices.
+Two loops keep speed apart from FX risk. The merchant is paid instantly from the pool (loop 1). The lira Troia collected refills the pool later through a licensed exchange and CCTP (loop 2). The pool carries the n-day FX risk that the commission prices in.
 
-**Commission** = `μ·n (drift) + z·σ·√n (volatility) + funding + margin`, with μ,σ from the **live USD/TRY series** — cheap in calm markets, higher when volatile. Short valör (T+1) lands **below banks' hidden spread**.
+## Commission
+
+`commission(n) = drift + volatility + funding + margin`, where drift is `mu*n`, volatility is `z*sigma*sqrt(n)`, and mu, sigma come from the live USD/TRY series. It is cheap when the market is calm and higher when it is volatile. A short settlement window (T+1) lands under the spread banks hide in their own rate.
 
 ## Repo
 
 ```
-src/               Solidity — MerchantRegistry.sol, SettlementPool.sol, mocks/
+src/                 Solidity: MerchantRegistry.sol, SettlementPool.sol, mocks/
 script/Deploy.s.sol  Arc deploy
-test/              Foundry tests (11/11)
-backend/           Node — commission engine, USD/TRY oracle, iyzico (IYZWSv2), chain (settle), HTTP server (8/8 tests)
-extension/         Chrome MV3 — "Troia — built on Arc" (popup, content, background, icons)
-web/               Design demos — checkout.html, store.html, extension-preview.html
+test/                Foundry tests (11/11)
+backend/             Node: commission engine, USD/TRY oracle, iyzico (IYZWSv2),
+                     chain settle, HTTP server (routes: /quote, /pay/card, /demo/pay,
+                     /pay/init, /pay/callback, /onboard, /pos/webhook, /health)
+extension/           Chrome MV3: two-step pay overlay, content, popup, background, icons
+web/                 Demo store (PS5 catalog, web2 checkout) and preview pages
 ```
 
 ## Run
 
 ```bash
 # contracts
-forge test -vv                       # 11/11
+forge test -vv
 USDC_ADDR=0x3600000000000000000000000000000000000000 \
   forge script script/Deploy.s.sol --rpc-url arc_testnet --private-key <PK> --broadcast
 
 # backend
 cd backend && npm install
-cp .env.example .env                 # fill iyzico + deployed addresses + OPERATOR_PK
-node --test                          # 8/8
-node --env-file=.env src/server.js   # :3000  → /quote, /pos/webhook, /onboard, /health
+cp .env.example .env          # fill iyzico sandbox keys, deployed addresses, OPERATOR_PK
+node --test
+node src/server.js            # :3000, serves the demo store and the API
 
 # extension
-# chrome://extensions → Developer mode → Load unpacked → select extension/
+# chrome://extensions, turn on Developer mode, Load unpacked, pick extension/
 ```
 
-## Circle stack on Arc
+Open `http://localhost:3000`, add a game to the cart, choose "pay with crypto", pick a network, then "pay with your Troy card." In the sandbox use iyzico's test card `5528 7900 0000 0008`, expiry `12/30`, CVV `123`.
 
-USDC (settlement + gas) · **CCTP / Bridge Kit** (treasury refill, cross-border USDC → Arc) · **Circle Wallets** (per-merchant payout wallets at onboarding) · **App Kits** (embedded fee = the merchant take-rate). Roadmap: on-chain TRY via **BRIX iTRY** bridged to Arc; production PSP partnership (iyzico / Paribu).
+## Circle on Arc
+
+USDC for settlement and gas. CCTP for the treasury refill (moving collected value into USDC on Arc). Circle Wallets for per-merchant payout wallets at onboarding. App Kits carry the merchant take rate as an embedded fee. On the roadmap: on-chain lira via BRIX iTRY bridged to Arc, and a production PSP partnership (iyzico, Paribu).
 
 ## Security
 
-Payouts route only to registry-verified merchants · reentrancy guard · pause · per-tx circuit breaker (`maxSettleAmount`) · replay guard (`posRef`) · two-step ownership · webhook HMAC verified fail-closed & timing-safe · secrets only in gitignored `.env`.
+Payouts only reach registry-verified merchants. Reentrancy guard, pause switch, a per-transaction circuit breaker (`maxSettleAmount`), a replay guard on `posRef`, and two-step ownership. Webhook signatures are checked fail-closed and in constant time. The demo settle route is off unless a build explicitly enables it, and onboarding needs an operator token. Secrets live only in a gitignored `.env`.
 
----
-*Not financial advice. The fiat leg runs on a licensed PSP; Troia is the settlement/software layer. Testnet only. Arc is a trademark of Circle Internet Group, Inc.*
+## Notes
+
+Not financial advice. The fiat leg runs on a licensed PSP; Troia is the settlement and software layer. Testnet only. Arc is a trademark of Circle Internet Group, Inc.

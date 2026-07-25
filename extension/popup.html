@@ -27,6 +27,7 @@
   .mrch .ord{font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:var(--inkmut);margin-top:2px}
 
   .hero{padding:16px 16px 6px}
+  .nets2{text-align:center;font-size:.68rem;letter-spacing:.04em;color:var(--inkmut);margin-top:14px}
   .leg{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 14px;border:1px solid var(--paperline)}
   .leg .amt{font-family:var(--serif);font-size:1.5rem;font-weight:500;font-variant-numeric:tabular-nums}
   .leg.out .u{font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--brass);margin-left:6px}
@@ -135,12 +136,11 @@ c-496 0 -919 -1 -940 -2 -25 -1 -44 4 -54 15 -8 9 -66 119 -130 245 -63 125
       <div><div class="nm" id="nm">—</div><div class="ord" id="ord">—</div></div>
     </div>
     <div class="hero">
-      <div class="leg"><div class="amt" id="tl">—</div><span class="chip"><span class="c">₺</span>Troy kartı</span></div>
-      <div class="bridge"><span class="ln"></span><span class="lbl">Köprü · Arc</span><span class="ln"></span></div>
-      <div class="leg out"><div class="amt" id="usdc">—<span class="u">USDC · Arc</span></div><span class="chip"><span class="c">$</span>USDC</span></div>
+      <div class="leg out"><div class="amt" id="usdc">—<span class="u">USDC</span></div><span class="chip"><span class="c">$</span>Arc</span></div>
+      <div class="nets2">Arc · Arbitrum · Ethereum · Avalanche</div>
     </div>
-    <button class="cta" id="pay">Troy kartıyla öde</button>
-    <div class="steps"><div class="s on">TL tahsilatı</div><div class="s on">USDC gönderimi</div><div class="s">arcscan kaydı</div></div>
+    <button class="cta" id="pay">Kripto ile öde</button>
+    <div class="steps"><div class="s on">Ağ seç</div><div class="s on">USDC gönder</div><div class="s">Arc'ta settle</div></div>
   </div>
 
   <div class="empty" id="empty">
@@ -214,7 +214,8 @@ c-496 0 -919 -1 -940 -2 -25 -1 -44 4 -54 15 -8 9 -66 119 -130 245 -63 125
 72 0 5 20 60 45 122 25 62 45 118 45 124 0 6 9 29 20 50 11 22 25 54 30 70 19
 65 60 172 79 212 12 23 21 47 21 52 0 6 11 35 25 65 14 30 25 61 25 69 0 33
 15 26 18 -9 2 -20 0 -40 -5 -43z"/></g></svg>
-    Bu sayfada Troia ödemesi bulunamadı.<br>Entegre bir satıcının ödeme adımında aç.
+    <b style="color:var(--ink);font-family:var(--serif);font-weight:500">₺ ödersin, satıcı USDC alır.</b><br>
+    Troia mağazanın ödeme adımında devreye girer. Bir ürünün <b>Kripto ile öde</b> adımını aç, ödeme sayfanın üzerinde açılır.
   </div>
 
   <script type="module" src="popup.js"></script>

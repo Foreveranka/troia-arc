@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Troia — built on Arc",
-  "version": "0.1.0",
-  "description": "Troy kartıyla TL öde, satıcı Arc'ta anında USDC alır. Model A — doğrulanmış satıcı.",
+  "name": "Troia, built on Arc",
+  "version": "0.2.0",
+  "description": "Troy kartıyla TL öde; satıcı Arc ağında anında USDC alır.",
   "action": {
     "default_popup": "popup.html",
     "default_title": "Troia ile öde",
@@ -18,5 +18,5 @@
     }
   ],
   "host_permissions": ["http://localhost/*", "http://127.0.0.1/*"],
-  "permissions": ["storage", "tabs"]
+  "permissions": ["tabs", "clipboardRead"]
 }
