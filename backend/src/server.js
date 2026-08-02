@@ -1,8 +1,8 @@
-// Troia — backend HTTP server (bağımlılık az: node:http)
+// Troia: backend HTTP server (bağımlılık az: node:http)
 // Endpoint'ler:
 //   POST /onboard        { slug, payout }                 → registry'ye merchant kaydı
 //   GET  /quote?grossTL=&valorDays=                        → komisyon önizleme (settle etmeden)
-//   POST /pos/webhook     { posRef, slug, grossTL, valorDays }  (iyzico imzalı — mock)  → doğrula → settle
+//   POST /pos/webhook     { posRef, slug, grossTL, valorDays }  (iyzico imzalı, mock)  → doğrula → settle
 //   GET  /health
 //
 // Money-first: gerçekte önce iyzico charge onaylanır, SONRA on-chain settle. Bu PoC webhook'u
@@ -17,7 +17,7 @@ import { dirname, join } from "node:path";
 try {
   const envPath = join(dirname(fileURLToPath(import.meta.url)), "../.env");
   if (existsSync(envPath) && typeof process.loadEnvFile === "function") process.loadEnvFile(envPath);
-} catch { /* yoksa sorun değil — ortam değişkenleri dışarıdan gelebilir */ }
+} catch { /* yoksa sorun değil, ortam değişkenleri dışarıdan gelebilir */ }
 
 import { estimateFromSeries, commission, usdcOutFor } from "./commission.js";
 import { fetchUsdTrySeries } from "./oracle.js";
@@ -66,7 +66,7 @@ function readBody(req, limit = 10_240) {
     req.on("data", (c) => {
       n += c.length;
       if (n > limit) { reject(new Error("body too large")); req.destroy(); return; }
-      chunks.push(c); // Buffer topla — string '+=' çok-baytlı UTF-8'i chunk sınırında bozar
+      chunks.push(c); // Buffer topla, string '+=' çok-baytlı UTF-8'i chunk sınırında bozar
     });
     req.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
     req.on("error", reject);
@@ -262,7 +262,7 @@ const server = createServer(async (req, res) => {
 
     json(res, 404, { error: "not found" });
   } catch (e) {
-    // hata sızıntısı yok — istemciye jenerik, detay logda
+    // hata sızıntısı yok, istemciye jenerik, detay logda
     console.error("[troia]", e.message);
     json(res, 500, { error: "sunucu hatasi" });
   }

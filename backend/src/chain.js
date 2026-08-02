@@ -1,4 +1,4 @@
-// Troia — Arc zincir yardımcısı (ethers v6, rate-limit dayanıklı)
+// Troia: Arc zincir yardımcısı (ethers v6, rate-limit dayanıklı)
 // SettlementPool.settle + MerchantRegistry. Operatör key YALNIZ .env.
 // Public Arc RPC rate-limit (-32011) verebildiği için: static network (az RPC çağrısı),
 // sabit gasPrice (getFeeData yok), ve tüm çağrılarda retry/backoff.

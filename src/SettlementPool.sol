@@ -9,11 +9,11 @@ interface IERC20 {
     function balanceOf(address account) external view returns (uint256);
 }
 
-/// @title SettlementPool (Troia — built on Arc)
-/// @notice Cross-border settlement köprüsü — USDC likidite havuzu (Arc).
+/// @title SettlementPool (Troia: built on Arc)
+/// @notice Cross-border settlement köprüsü, USDC likidite havuzu (Arc).
 ///         Kullanıcı TL öder (PSP, off-chain) → havuz merchant'a ANINDA net USDC gönderir
 ///         → T+n blokaj çözülünce havuz off-chain geri fonlanır (Paribu/OTC + CCTP).
-/// @dev MODEL A: `settle` ham adres almaz — `merchantId` alır ve ödeme adresini
+/// @dev MODEL A: `settle` ham adres almaz, `merchantId` alır ve ödeme adresini
 ///      MerchantRegistry'den çözer. Böylece yalnız kayıtlı, doğrulanmış merchant'lar
 ///      ödenir; checkout sayfası keyfi bir adres enjekte edemez.
 contract SettlementPool {

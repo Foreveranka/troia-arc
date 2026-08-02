@@ -1,4 +1,4 @@
-// Troia background service worker — backend'e giden tek nokta (CORS/origin izolasyonu).
+// Troia background service worker: backend'e giden tek nokta (CORS/origin izolasyonu).
 // Popup, backend'i doğrudan çağırmaz; buradan proxy'ler.
 
 import { BACKEND_URL } from "./lib/config.js";

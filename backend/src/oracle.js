@@ -1,4 +1,4 @@
-// Troia — USD/TL kur oracle'ı (çok kaynaklı, anahtarsız, dayanıklı)
+// Troia: USD/TL kur oracle'ı (çok kaynaklı, anahtarsız, dayanıklı)
 // Komisyon motoru için günlük kapanış serisi. Sıra: Binance USDT/TRY → Frankfurter(ECB) → config fallback.
 
 /**
@@ -31,7 +31,7 @@ export async function fetchUsdTrySeries({ days = 180, fetchImpl = globalThis.fet
     }
   } catch { /* düş */ }
 
-  // 3) config fallback (yalnız spot; μ/σ default kullanılır — demo hiç kırılmasın)
+  // 3) config fallback (yalnız spot; μ/σ default kullanılır, demo hiç kırılmasın)
   const spot = Number(process.env.FALLBACK_USDTRY || 0);
   if (spot > 0) return { closes: null, spot, source: "fallback" };
 

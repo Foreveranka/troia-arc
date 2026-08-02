@@ -1,4 +1,4 @@
-// Troia content script — sayfadaki kripto ödeme isteğini (ağ + adres + tutar) algılar,
+// Troia content script: sayfadaki kripto ödeme isteğini (ağ + adres + tutar) algılar,
 // "Troy kartıyla öde" seçeneğini sayfaya enjekte eder ve tıklanınca kart-giriş panelini açar.
 // Anahtar tutmaz, imza atmaz. Fail-closed.
 
@@ -166,7 +166,7 @@
               '<div class="or">Sipariş ' + esc(intent.orderId) + (intent.itemName ? ' · ' + esc(intent.itemName) : '') + '</div></div>' +
               '<span class="vf">Arc</span></div>' +
             '<div class="amt"><div class="l">Ödenecek</div>' +
-              '<div class="v">' + (usdRef || "$—") + '<small>USDC</small></div>' +
+              '<div class="v">' + (usdRef || "$0.00") + '<small>USDC</small></div>' +
               '<div class="u" id="q">Troy kartından ₺ çekilir</div></div>' +
             '<div class="stp on" id="step1">' +
               '<div class="stt"><span class="step">1 / 2</span>Ödeme adresi</div>' +
@@ -206,7 +206,7 @@
       } catch (e) { inp.focus(); }
     });
 
-    // canlı kur — sadece bilgi (₺ karşılığı)
+    // canlı kur, sadece bilgi (₺ karşılığı)
     fetch(BACKEND + "/quote?" + qParam + "&valorDays=" + intent.valorDays)
       .then(function (r) { return r.json(); })
       .then(function (q) {

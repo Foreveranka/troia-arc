@@ -132,9 +132,9 @@
     <div class="pgrid">
       <div class="pcov" id="pcov"></div>
       <div class="pinfo">
-        <h1 id="pTitle">—</h1><div class="gn" id="pGenre">—</div>
+        <h1 id="pTitle"></h1><div class="gn" id="pGenre"></div>
         <div class="stars"><b>★★★★☆</b><span id="pRev">4.6 · 1,284 reviews</span></div>
-        <p class="pdesc" id="pDesc">—</p>
+        <p class="pdesc" id="pDesc"></p>
         <div class="pbuy">
           <div class="p"><s id="pOld">$69.99</s><span id="pPrice">$9.99</span><span class="d" id="pDisc">-86%</span></div>
           <button class="btn" onclick="checkout()">Add to Cart &amp; Checkout</button>
@@ -156,11 +156,11 @@
     <div class="cgrid">
       <div>
         <h2 class="ct">Order Summary</h2>
-        <div class="citem"><div class="th" id="ckTh"></div><div><div class="nm" id="ckNm">—</div><div class="mt" id="ckMt">PS5 Digital Code · Global</div></div><div class="pp" id="ckPp">—</div></div>
+        <div class="citem"><div class="th" id="ckTh"></div><div><div class="nm" id="ckNm"></div><div class="mt" id="ckMt">PS5 Digital Code · Global</div></div><div class="pp" id="ckPp"></div></div>
         <div class="ctot">
-          <div class="r"><span>Subtotal</span><span id="ckSub">—</span></div>
+          <div class="r"><span>Subtotal</span><span id="ckSub"></span></div>
           <div class="r"><span>Service fee</span><span>$0.00</span></div>
-          <div class="r big"><span>Total</span><span id="ckTot">—</span></div>
+          <div class="r big"><span>Total</span><span id="ckTot"></span></div>
         </div>
       </div>
       <div>
@@ -186,8 +186,8 @@
           <div class="lb2">Choose a network</div>
           <div class="netsel" id="netsel"></div>
           <div class="cryp" id="cryp" style="display:none">
-            <div class="cl">Send <b id="cryAmt">—</b> USDC on <b id="cryNet">—</b> to this address:</div>
-            <div class="caddr"><code id="cryAddr">—</code><button id="cryCopy" type="button">Copy</button></div>
+            <div class="cl">Send <b id="cryAmt"></b> USDC on <b id="cryNet"></b> to this address:</div>
+            <div class="caddr"><code id="cryAddr"></code><button id="cryCopy" type="button">Copy</button></div>
             <div class="cwait" id="cwait"><span class="spin"></span>Waiting for payment…</div>
             <div id="pay-slot"></div>
           </div>
@@ -291,7 +291,7 @@
     go("product");
   }
 
-  // hidden intent — mağaza sadece merchantId + tutar taşır; ağ seçilince network+address eklenir
+  // hidden intent, mağaza sadece merchantId + tutar taşır; ağ seçilince network+address eklenir
   function writeIntent(p, order, net, addr){
     var intent = { merchantId:"merchant.demo-store", merchantName:"NOVAKEY", itemName:p.t+" (PS5)", orderId:order, grossUSD:Math.round(p.price*100), valorDays:7 };
     if(net){ intent.network = net; intent.address = addr; }

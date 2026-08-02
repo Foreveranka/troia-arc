@@ -1,4 +1,4 @@
-// Troia — iyzico PSP adapter (sandbox)
+// Troia: iyzico PSP adapter (sandbox)
 // IYZWSv2 istek imzalama + checkout-form init/retrieve + webhook doğrulama.
 // Anahtarlar YALNIZ .env'den okunur; hiçbir yere loglanmaz/commit'lenmez.
 //
@@ -28,7 +28,7 @@ export function authHeader(uriPath, bodyStr, { apiKey, secretKey, randomKey } = 
   };
 }
 
-/** İmzalı POST — RawIyzicoResult döner (asla önceden karar verilmiş success değil). */
+/** İmzalı POST, RawIyzicoResult döner (asla önceden karar verilmiş success değil). */
 export async function post(uriPath, body, { fetchImpl = globalThis.fetch } = {}) {
   const base = process.env.IYZICO_BASE_URL || "https://sandbox-api.iyzipay.com";
   const bodyStr = JSON.stringify(body);
@@ -42,7 +42,7 @@ export async function post(uriPath, body, { fetchImpl = globalThis.fetch } = {})
         "Content-Type": "application/json",
       },
       body: bodyStr,
-      signal: AbortSignal.timeout(20_000), // retry YOK — re-POST çift-charge riski
+      signal: AbortSignal.timeout(20_000), // retry YOK, re-POST çift-charge riski
     });
     const text = await res.text();
     if (!res.ok) return { kind: "malformed", reason: "http " + res.status };
@@ -84,7 +84,7 @@ function addressOf(b) {
   return { contactName: (b.name || "Demo") + " " + (b.surname || "Kullanici"), city: b.city || "Istanbul", country: b.country || "Turkey", address: b.registrationAddress || "Demo Mah. No:1", zipCode: b.zipCode || "34000" };
 }
 
-/** Direkt (non-3DS) kart ödemesi — kart bilgisi burada iyzico'ya gider; sandbox panelinde işlem olarak görünür. */
+/** Direkt (non-3DS) kart ödemesi, kart bilgisi burada iyzico'ya gider; sandbox panelinde işlem olarak görünür. */
 export async function createPayment({ conversationId, priceTL, card, buyer, item }, opts) {
   const price = formatPrice(priceTL);
   const body = {
@@ -125,7 +125,7 @@ export function verifyWebhook(rawBody, signatureHeader, secretKey = process.env.
   return timingSafeEqual(a, b);
 }
 
-/** iyzico fiyat formatı (SDK ile aynı) — kanonik olmayan ondalıkta fail-closed. */
+/** iyzico fiyat formatı (SDK ile aynı), kanonik olmayan ondalıkta fail-closed. */
 export function formatPrice(tl) {
   const n = typeof tl === "string" ? tl : String(tl);
   if (!/^\d+(\.\d{1,2})?$/.test(n)) throw new Error("gecersiz fiyat: " + n);

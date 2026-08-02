@@ -1,4 +1,4 @@
-// Troia popup — reads the active tab's intent and opens the in-page crypto
+// Troia popup: reads the active tab's intent and opens the in-page crypto
 // payment panel (network select → deposit address → pay).
 
 const fmtUSD = (usd) => "$" + Number(usd).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -22,14 +22,14 @@ async function main() {
   document.getElementById("ord").textContent = "Sipariş " + intent.orderId + (intent.itemName ? " · " + intent.itemName : "");
 
   const usdc = intent.grossUSD != null ? (intent.grossUSD / 100) : null;
-  document.getElementById("usdc").innerHTML = (usdc != null ? fmtUSD(usdc) : "—") + '<span class="u">USDC</span>';
+  document.getElementById("usdc").innerHTML = (usdc != null ? fmtUSD(usdc) : "0.00") + '<span class="u">USDC</span>';
 
   const pay = document.getElementById("pay");
   pay.addEventListener("click", async () => {
     try {
       await chrome.tabs.sendMessage(tab.id, { type: "troia:openPay" }); // sayfadaki ödeme panelini aç
       window.close();
-    } catch { /* content script yok — sessizce geç */ }
+    } catch { /* content script yok, sessizce geç */ }
   });
 }
 

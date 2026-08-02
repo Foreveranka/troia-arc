@@ -5,7 +5,7 @@ pragma solidity 0.8.24;
 /// @notice Model A çekirdeği: merchantId → DOĞRULANMIŞ settlement adresi eşlemesi.
 ///         Merchant onboarding'de platform (owner) kaydeder; ödeme adresi burada,
 ///         checkout sayfasında DEĞİL. Böylece kötü/hack'lenmiş bir sayfa keyfi bir
-///         ödeme adresi enjekte edemez — SettlementPool her zaman buradan çözer.
+///         ödeme adresi enjekte edemez, SettlementPool her zaman buradan çözer.
 /// @dev Onboarding'de merchant için bir Circle dev-controlled cüzdan açılır ve
 ///      onun adresi `payout` olarak yazılır (off-chain), kayıt on-chain kanıt olur.
 contract MerchantRegistry {

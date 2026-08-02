@@ -1,15 +1,15 @@
-// Troia — komisyon motoru (kur riskinin matematiksel fiyatlaması)
+// Troia: komisyon motoru (kur riskinin matematiksel fiyatlaması)
 //
 //   Komisyon(n) = μ·n (drift) + z·σ·√n (volatilite) + funding + marj
 //
-// μ (drift): TL'nin günlük ortalama değer kaybı (trend) — doğrusal, n ile büyür.
-// z·σ·√n (volatilite): belirsizlik tamponu — karekök-zaman (n günün toplam sallantısı σ√n).
+// μ (drift): TL'nin günlük ortalama değer kaybı (trend), doğrusal, n ile büyür.
+// z·σ·√n (volatilite): belirsizlik tamponu, karekök-zaman (n günün toplam sallantısı σ√n).
 // funding: havuz USD bazlı; USD funding oranı (~SOFR %4.3) × n/365.
 // marj: sabit kâr (riskten bağımsız, şeffaf).
 //
 // μ ve σ CANLI USD/TL günlük kapanış serisinden hesaplanır → piyasa sakinse ucuz, gerginse pahalı.
 
-/** Günlük kapanış serisinden μ (drift) ve σ (volatilite) — logaritmik getirilerle. */
+/** Günlük kapanış serisinden μ (drift) ve σ (volatilite), logaritmik getirilerle. */
 export function estimateFromSeries(closes) {
   if (!Array.isArray(closes) || closes.length < 2) {
     throw new Error("en az 2 fiyat gerekli");
@@ -30,7 +30,7 @@ export function estimateFromSeries(closes) {
 
 /**
  * Komisyonu bps olarak hesaplar.
- * @param {number} valorDays n — valör/blokaj günü
+ * @param {number} valorDays n, valör/blokaj günü
  * @param {object} p { mu, sigma, z, marginBps, usdFundingAprBps }
  * @returns {{driftBps,volBps,fundingBps,marginBps,totalBps}}
  */
